@@ -99,6 +99,13 @@ public sealed partial class MainWindow : Window
         y = Math.Clamp(y, work.Y, Math.Max(work.Y, work.Y + work.Height - size));
 
         AppWindow.MoveAndResize(new RectInt32(x, y, size, size));
+
+        Native.RemoveFrameDecorations(this);
+
+        if (_settings.ClipRoundedWindow)
+        {
+            Native.ClipToRoundedRect(this, size, (int)Math.Round(32 * scale));
+        }
     }
 
     async Task RefreshAsync()

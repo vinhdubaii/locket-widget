@@ -23,6 +23,10 @@ public class AppSettings
     public int RefreshMinutes { get; set; } = 5;
     public int Size { get; set; } = 220;
     public bool AlwaysOnTop { get; set; } = false;
+
+    // set to true if a thin outline or haze still shows around the rounded widget:
+    // the window is then cut to the rounded shape (edge is slightly pixelated)
+    public bool ClipRoundedWindow { get; set; } = false;
     public double? Left { get; set; }
     public double? Top { get; set; }
 

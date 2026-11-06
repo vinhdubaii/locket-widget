@@ -1,38 +1,41 @@
-<Window x:Class="LocketWidget.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Locket Widget"
-        Width="220" Height="220"
-        WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
-        ResizeMode="NoResize"
-        ShowInTaskbar="False"
-        WindowStartupLocation="Manual">
+<Window
+    x:Class="LocketWidget.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:winuiex="using:WinUIEx">
 
-    <Border x:Name="card"
-            CornerRadius="32"
-            Background="#2B2B2B"
-            MouseLeftButtonDown="Card_MouseLeftButtonDown">
+    <Window.SystemBackdrop>
+        <winuiex:TransparentTintBackdrop />
+    </Window.SystemBackdrop>
 
-        <Border.ContextMenu>
-            <ContextMenu>
-                <MenuItem Header="Làm mới ngay" Click="Refresh_Click" />
-                <MenuItem Header="Đăng nhập lại" Click="Relogin_Click" />
-                <MenuItem x:Name="topMenu" Header="Luôn nằm trên" IsCheckable="True" Click="Top_Click" />
-                <MenuItem Header="Mở thư mục dữ liệu" Click="Folder_Click" />
-                <Separator />
-                <MenuItem Header="Thoát" Click="Exit_Click" />
-            </ContextMenu>
-        </Border.ContextMenu>
+    <Grid x:Name="Root" Background="Transparent">
+        <Border x:Name="Card"
+                CornerRadius="32"
+                Background="#2B2B2B"
+                PointerPressed="Card_PointerPressed"
+                PointerMoved="Card_PointerMoved"
+                PointerReleased="Card_PointerReleased"
+                PointerCaptureLost="Card_PointerCaptureLost">
 
-        <TextBlock x:Name="status"
-                   Margin="16"
-                   FontSize="12"
-                   Foreground="#BBBBBB"
-                   TextAlignment="Center"
-                   TextWrapping="Wrap"
-                   VerticalAlignment="Center"
-                   Text="Đang khởi động..." />
-    </Border>
+            <Border.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem Text="Làm mới ngay" Click="Refresh_Click" />
+                    <MenuFlyoutItem Text="Đăng nhập lại" Click="Relogin_Click" />
+                    <ToggleMenuFlyoutItem x:Name="TopMenu" Text="Luôn nằm trên" Click="Top_Click" />
+                    <MenuFlyoutItem Text="Mở thư mục dữ liệu" Click="Folder_Click" />
+                    <MenuFlyoutSeparator />
+                    <MenuFlyoutItem Text="Thoát" Click="Exit_Click" />
+                </MenuFlyout>
+            </Border.ContextFlyout>
+
+            <TextBlock x:Name="Status"
+                       Margin="16"
+                       FontSize="12"
+                       Foreground="#BBBBBB"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center"
+                       Text="Đang khởi động..." />
+        </Border>
+    </Grid>
 </Window>

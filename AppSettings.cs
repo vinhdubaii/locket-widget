@@ -12,7 +12,7 @@ public class AppSettings
     public string FeedUrlMarker { get; set; } = "";
 
     // a piece of the image url inside the feed json
-    public string ImageUrlMarker { get; set; } = "locketcamera.com";
+    public string ImageUrlMarker { get; set; } = "locket-img";
 
     // false = newest image is the first match in the json, true = the last one
     public bool PickLastImage { get; set; } = false;

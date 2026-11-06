@@ -1,8 +1,10 @@
 name: Release
 
-# Day tag la tu dong build + tao GitHub Release, vi du:
+# Push a tag and this builds the installer and publishes a GitHub Release:
 #   git tag 0.1.0
 #   git push origin 0.1.0
+# If you create the release on the GitHub website instead, the installer is
+# attached to that release.
 on:
   push:
     tags:
@@ -30,36 +32,38 @@ jobs:
         shell: bash
         run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      # self-contained: may nguoi dung khong can cai .NET 8
+      # self-contained: users do not have to install .NET or the Windows App SDK
       - name: Publish
         run: >
           dotnet publish LocketWidget.csproj
           -c Release
           -r win-x64
-          --self-contained true
-          -p:PublishSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:Platform=x64
           -p:DebugType=None
           -p:DebugSymbols=false
           -p:Version=${{ steps.version.outputs.value }}
           -o publish
 
-      - name: Zip
+      - name: Install Inno Setup
         shell: pwsh
-        run: Compress-Archive -Path publish\LocketWidget.exe -DestinationPath LocketWidget-${{ steps.version.outputs.value }}-win-x64.zip
+        run: choco install innosetup --no-progress -y
 
-      # Tao release moi neu chua co, con neu da tao san tren giao dien GitHub
-      # thi chi upload file zip vao release do
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=${{ steps.version.outputs.value }}" installer\LocketWidget.iss
+
+      # create the release, or just attach the installer if it already exists
       - name: Create or update GitHub Release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          ZIP: LocketWidget-${{ steps.version.outputs.value }}-win-x64.zip
+          INSTALLER: dist/LocketWidget-Setup-${{ steps.version.outputs.value }}.exe
         run: |
           if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "$ZIP" --clobber
+            gh release upload "$GITHUB_REF_NAME" "$INSTALLER" --clobber
           else
-            gh release create "$GITHUB_REF_NAME" "$ZIP" \
+            gh release create "$GITHUB_REF_NAME" "$INSTALLER" \
               --title "LocketWidget ${{ steps.version.outputs.value }}" \
               --generate-notes
           fi

@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    # WPF + WebView2 chi build duoc tren Windows
+    # WinUI 3 + WebView2 only build on Windows
     runs-on: windows-latest
 
     steps:
@@ -23,8 +23,5 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore
-        run: dotnet restore LocketWidget.csproj
-
       - name: Build
-        run: dotnet build LocketWidget.csproj -c Release --no-restore
+        run: dotnet build LocketWidget.csproj -c Release -p:Platform=x64

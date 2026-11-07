@@ -51,6 +51,15 @@ internal static class Native
         DwmSetWindowAttribute(hwnd, 34, ref noBorder, sizeof(int)); // DWMWA_BORDER_COLOR
     }
 
+    // keeps the widget on screen while the user hovers "Show desktop" to peek at the desktop
+    public static void ExcludeFromPeek(Window window)
+    {
+        var hwnd = WindowNative.GetWindowHandle(window);
+
+        var yes = 1;
+        DwmSetWindowAttribute(hwnd, 12, ref yes, sizeof(int)); // DWMWA_EXCLUDED_FROM_PEEK
+    }
+
     // hard fallback: cut the window itself into a rounded rectangle so that nothing
     // (border, shadow, haze) can show outside it. the edge is not anti-aliased.
     public static void ClipToRoundedRect(Window window, int sizePx, int radiusPx)

@@ -21,21 +21,89 @@
                 <MenuFlyout>
                     <MenuFlyoutItem Text="Làm mới ngay" Click="Refresh_Click" />
                     <MenuFlyoutItem Text="Đăng nhập lại" Click="Relogin_Click" />
-                    <ToggleMenuFlyoutItem x:Name="TopMenu" Text="Luôn nằm trên" Click="Top_Click" />
-                    <MenuFlyoutItem Text="Mở thư mục dữ liệu" Click="Folder_Click" />
                     <MenuFlyoutSeparator />
+                    <ToggleMenuFlyoutItem x:Name="LockMenu" Text="Khoá Widget" Click="Lock_Click" />
+                    <ToggleMenuFlyoutItem x:Name="ResizeMenu" Text="Chỉnh kích thước" Click="Resize_Click" />
+                    <ToggleMenuFlyoutItem x:Name="TopMenu" Text="Luôn nằm trên" Click="Top_Click" />
+                    <MenuFlyoutSeparator />
+                    <MenuFlyoutItem Text="Mở thư mục dữ liệu" Click="Folder_Click" />
                     <MenuFlyoutItem Text="Thoát" Click="Exit_Click" />
                 </MenuFlyout>
             </Border.ContextFlyout>
 
-            <TextBlock x:Name="Status"
-                       Margin="16"
-                       FontSize="12"
-                       Foreground="#BBBBBB"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"
-                       VerticalAlignment="Center"
-                       Text="Đang khởi động..." />
+            <Grid>
+                <TextBlock x:Name="Status"
+                           Margin="16"
+                           FontSize="12"
+                           Foreground="#BBBBBB"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           VerticalAlignment="Center"
+                           Text="Đang khởi động..." />
+
+                <!-- resize mode: a square frame with a handle on every corner -->
+                <Grid x:Name="ResizeLayer" Visibility="Collapsed">
+                    <Grid.Resources>
+                        <Style x:Key="Handle" TargetType="Border">
+                            <Setter Property="Width" Value="20" />
+                            <Setter Property="Height" Value="20" />
+                            <Setter Property="CornerRadius" Value="10" />
+                            <Setter Property="Background" Value="White" />
+                            <Setter Property="BorderBrush" Value="#80000000" />
+                            <Setter Property="BorderThickness" Value="1" />
+                            <Setter Property="Margin" Value="6" />
+                        </Style>
+                    </Grid.Resources>
+
+                    <!-- darkens the photo so the frame can be seen on any picture -->
+                    <Border x:Name="ResizeDim" Background="#55000000" CornerRadius="32" />
+
+                    <Border x:Name="ResizeFrame"
+                            Margin="16"
+                            BorderBrush="White"
+                            BorderThickness="2"
+                            CornerRadius="16"
+                            IsHitTestVisible="False" />
+
+                    <Border Style="{StaticResource Handle}" Tag="TL"
+                            HorizontalAlignment="Left" VerticalAlignment="Top"
+                            PointerPressed="Handle_PointerPressed"
+                            PointerMoved="Handle_PointerMoved"
+                            PointerReleased="Handle_PointerReleased"
+                            PointerCaptureLost="Handle_PointerCaptureLost" />
+
+                    <Border Style="{StaticResource Handle}" Tag="TR"
+                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                            PointerPressed="Handle_PointerPressed"
+                            PointerMoved="Handle_PointerMoved"
+                            PointerReleased="Handle_PointerReleased"
+                            PointerCaptureLost="Handle_PointerCaptureLost" />
+
+                    <Border Style="{StaticResource Handle}" Tag="BL"
+                            HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                            PointerPressed="Handle_PointerPressed"
+                            PointerMoved="Handle_PointerMoved"
+                            PointerReleased="Handle_PointerReleased"
+                            PointerCaptureLost="Handle_PointerCaptureLost" />
+
+                    <Border Style="{StaticResource Handle}" Tag="BR"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                            PointerPressed="Handle_PointerPressed"
+                            PointerMoved="Handle_PointerMoved"
+                            PointerReleased="Handle_PointerReleased"
+                            PointerCaptureLost="Handle_PointerCaptureLost" />
+
+                    <Border HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Padding="16,6"
+                            CornerRadius="14"
+                            Background="#CC000000"
+                            PointerPressed="Done_PointerPressed"
+                            PointerReleased="Done_PointerReleased">
+                        <TextBlock Text="Xong" FontSize="13" Foreground="White" />
+                    </Border>
+                </Grid>
+            </Grid>
         </Border>
     </Grid>
 </Window>

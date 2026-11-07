@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Graphics;
+using WinRT.Interop;
 
 namespace LocketWidget;
 
@@ -17,6 +18,13 @@ public sealed partial class MainWindow : Window
 {
     // WINCODEC_ERR_COMPONENTNOTFOUND: no decoder for the image format (WebP without the store extension)
     const int ComponentNotFound = unchecked((int)0x88982F50);
+
+    // the widget is a square, these sizes are in device independent pixels
+    const double MinSize = 140;
+    const double MaxSize = 600;
+
+    // corner radius as a fraction of the size (32 at the default size of 220)
+    const double CornerRatio = 32.0 / 220.0;
 
     readonly AppSettings _settings = AppSettings.Load();
     readonly FeedClient _feed;
@@ -33,6 +41,13 @@ public sealed partial class MainWindow : Window
     POINT _pressCursor;
     PointInt32 _pressPosition;
 
+    // resize state
+    bool _resizeMode;
+    bool _resizing;
+    string _corner = "BR";
+    POINT _resizeCursor;
+    RectInt32 _resizeStart;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -42,6 +57,14 @@ public sealed partial class MainWindow : Window
 
         ConfigureWindow();
         TopMenu.IsChecked = _settings.AlwaysOnTop;
+        LockMenu.IsChecked = _settings.Locked;
+        ResizeMenu.IsEnabled = !_settings.Locked;
+
+        if (_settings.PinOnShowDesktop)
+        {
+            var pin = new DesktopPin(WindowNative.GetWindowHandle(this), () => _settings.AlwaysOnTop);
+            Closed += (_, _) => pin.Dispose();
+        }
 
         _timer = DispatcherQueue.CreateTimer();
         _timer.Interval = TimeSpan.FromMinutes(Math.Max(1, _settings.RefreshMinutes));
@@ -59,7 +82,7 @@ public sealed partial class MainWindow : Window
     void ConfigureWindow()
     {
         var scale = Native.Scale(this);
-        var size = (int)Math.Round(_settings.Size * scale);
+        var size = (int)Math.Round(Math.Clamp(_settings.Size, MinSize, MaxSize) * scale);
 
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
@@ -101,10 +124,24 @@ public sealed partial class MainWindow : Window
         AppWindow.MoveAndResize(new RectInt32(x, y, size, size));
 
         Native.RemoveFrameDecorations(this);
+        Native.ExcludeFromPeek(this);
+
+        ApplyShape(size);
+    }
+
+    // the corner radius follows the size, so the widget looks the same when it is resized
+    void ApplyShape(int sizePx)
+    {
+        var scale = Native.Scale(this);
+        var radius = sizePx / scale * CornerRatio;
+
+        Card.CornerRadius = new CornerRadius(radius);
+        ResizeDim.CornerRadius = new CornerRadius(radius);
+        ResizeFrame.CornerRadius = new CornerRadius(Math.Max(0, radius - 16));
 
         if (_settings.ClipRoundedWindow)
         {
-            Native.ClipToRoundedRect(this, size, (int)Math.Round(32 * scale));
+            Native.ClipToRoundedRect(this, sizePx, (int)Math.Round(radius * scale));
         }
     }
 
@@ -318,7 +355,14 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        // a locked widget never moves, but a drag attempt is still not a click
         _moved = true;
+
+        if (_settings.Locked)
+        {
+            return;
+        }
+
         AppWindow.Move(new PointInt32(_pressPosition.X + dx, _pressPosition.Y + dy));
     }
 
@@ -336,9 +380,12 @@ public sealed partial class MainWindow : Window
 
         if (moved)
         {
-            SavePosition();
+            if (!_settings.Locked)
+            {
+                SavePosition();
+            }
         }
-        else
+        else if (!_resizeMode)
         {
             OpenSite();
         }
@@ -347,6 +394,117 @@ public sealed partial class MainWindow : Window
     void Card_PointerCaptureLost(object sender, PointerRoutedEventArgs e)
     {
         _pressed = false;
+    }
+
+    void SetResizeMode(bool on)
+    {
+        _resizeMode = on;
+        ResizeMenu.IsChecked = on;
+        ResizeLayer.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // grabbing a corner handle: the opposite corner stays where it is
+    void Handle_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        var handle = (Border)sender;
+
+        _corner = (string)handle.Tag;
+        _resizeStart = new RectInt32(
+            AppWindow.Position.X,
+            AppWindow.Position.Y,
+            AppWindow.Size.Width,
+            AppWindow.Size.Height);
+
+        Native.GetCursorPos(out _resizeCursor);
+        _resizing = true;
+
+        handle.CapturePointer(e.Pointer);
+        e.Handled = true;
+    }
+
+    void Handle_PointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_resizing)
+        {
+            return;
+        }
+
+        // screen coordinates, same reason as when dragging the widget
+        Native.GetCursorPos(out var cursor);
+        var dx = cursor.X - _resizeCursor.X;
+        var dy = cursor.Y - _resizeCursor.Y;
+
+        // -1 for a handle on the left/top edge (growing then moves the window), +1 otherwise
+        var sx = _corner[1] == 'L' ? -1 : 1;
+        var sy = _corner[0] == 'T' ? -1 : 1;
+
+        var scale = Native.Scale(this);
+        var min = (int)Math.Round(MinSize * scale);
+        var max = (int)Math.Round(MaxSize * scale);
+
+        var size = Math.Clamp(_resizeStart.Width + (sx * dx + sy * dy) / 2, min, max);
+        var grow = size - _resizeStart.Width;
+
+        var x = sx < 0 ? _resizeStart.X - grow : _resizeStart.X;
+        var y = sy < 0 ? _resizeStart.Y - grow : _resizeStart.Y;
+
+        AppWindow.MoveAndResize(new RectInt32(x, y, size, size));
+        ApplyShape(AppWindow.Size.Width);
+
+        e.Handled = true;
+    }
+
+    void Handle_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_resizing)
+        {
+            return;
+        }
+
+        _resizing = false;
+        ((Border)sender).ReleasePointerCapture(e.Pointer);
+
+        // the real size, in case windows refused the one that was asked for
+        _settings.Size = (int)Math.Round(AppWindow.Size.Width / Native.Scale(this));
+        SavePosition();
+
+        e.Handled = true;
+    }
+
+    void Handle_PointerCaptureLost(object sender, PointerRoutedEventArgs e)
+    {
+        _resizing = false;
+    }
+
+    void Done_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        // keep the card from treating this as the start of a drag
+        e.Handled = true;
+    }
+
+    void Done_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        SetResizeMode(false);
+        e.Handled = true;
+    }
+
+    void Lock_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.Locked = LockMenu.IsChecked;
+        ResizeMenu.IsEnabled = !_settings.Locked;
+
+        // a locked widget can not be resized either
+        if (_settings.Locked)
+        {
+            SetResizeMode(false);
+        }
+
+        _settings.Save();
+    }
+
+    void Resize_Click(object sender, RoutedEventArgs e)
+    {
+        SetResizeMode(ResizeMenu.IsChecked);
     }
 
     async void Refresh_Click(object sender, RoutedEventArgs e)

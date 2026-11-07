@@ -24,6 +24,12 @@ public class AppSettings
     public int Size { get; set; } = 220;
     public bool AlwaysOnTop { get; set; } = false;
 
+    // a locked widget can not be moved or resized (a plain click still opens the site)
+    public bool Locked { get; set; } = false;
+
+    // keep the widget visible when "Show desktop" (Win+D, taskbar corner) is used
+    public bool PinOnShowDesktop { get; set; } = true;
+
     // set to true if a thin outline or haze still shows around the rounded widget:
     // the window is then cut to the rounded shape (edge is slightly pixelated)
     public bool ClipRoundedWindow { get; set; } = false;
